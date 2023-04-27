@@ -29,7 +29,7 @@ setuptools.setup(
     py_modules=['agol_pandas'],             # name of the python package
     package_dir={'':'src'},                 # directory of the source code of the package
     install_requires=[                      # package dependencies
-                        'arcgis=1.9.1',
+                        'arcgis==1.9.1',
                         'pandas>=1.3.4', 
                     ]
     )
