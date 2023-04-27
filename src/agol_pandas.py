@@ -234,7 +234,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
                                         rollback=True,
                                         skip_inserts=skip_inserts,
                                         upsert_matching_field=upsert_matching_field)
-
+            tmp_table.delete()
             results.append({'chunk_id': (idx+1), 
                             'chunk_size': len(chunk),
                             'mode' : mode, 
@@ -249,7 +249,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         except:
             pass                
         try: 
-            if tmp_table:
+            if bool(tmp_table):
                 tmp_table.delete()
         except:
             pass
