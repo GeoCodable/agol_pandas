@@ -111,10 +111,8 @@ def agol_hosted_item_to_sdf(gis: GIS, item_id: str):
     # Get the query results from the layer.
     query_results = table.query(return_all_records=True)
 
-    # Convert the query results to a Pandas dataframe.
-    sdf = pd.DataFrame(query_results)
-
-    return sdf
+    # Return the query results as a Pandas dataframe.
+    return query_results.sdf
 #-------------------------------------------------------------------------------- 
 def df_to_agol_hosted_table(gis, df, item_id, mode='append', 
                             upsert_column=None,  chunk_size: int = 5000):
