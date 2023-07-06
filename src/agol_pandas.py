@@ -385,3 +385,4 @@ def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame,
         return pub_table             
     except Exception as e:
         print(e)
+        return(e)
