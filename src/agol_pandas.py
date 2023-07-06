@@ -176,7 +176,12 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
 
         # get the target item table
         item = gis.content.search(item_id)[0]
-        tgt_table = item.tables[0]
+
+        # determine if the item has layers/tables
+        if bool(tgt_table.layers):
+            tgt_table = item.layers[0]   
+        if bool(tgt_table.tables):
+            tgt_table = item.tables[0]
 
         # set the append params
         upsert=False
@@ -356,10 +361,17 @@ def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame,
             raise ValueError("The dataframe could not be chunked, see chunk_size")
 
         # create a new table using the first chunk, append for subsequent chunks 
-        table_id = None
-        pub_table = None
+
+        items = gis.content.search(query=f"title:{tbl_name} AND type:Feature Service AND owner:{gis.users.me.username}")
+        items = [i for i in items if i.title==item_name]
+        if len(items) > 0 :
+            table_id = items[0].id
+            pub_table = items[0]
+        else:
+            table_id = None
+            pub_table = None
         for idx, chunk in enumerate(chunks):
-            if idx == 0:
+            if idx == 0 and not bool(table_id):
                 pub_table = create_table(gis, name=tbl_name, df=chunk)
                 if not pub_table:
                     raise ValueError("Table could not be published")
