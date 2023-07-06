@@ -263,7 +263,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         except:
             pass
 #-------------------------------------------------------------------------------
-def create_table(gis: GIS, name: str, df: pd.DataFrame):
+def create_table(gis: GIS, name: str, df: pd.DataFrame, item_properties=None):
     """Internal function to upload a new
     csv and create a new hoasted table
     Parameters
@@ -292,7 +292,8 @@ def create_table(gis: GIS, name: str, df: pd.DataFrame):
         # add/upload the csv to the user's content 
         tmp_table = gis.content.add(data=tmp_csv, 
                                     item_properties=item_properties,
-                                    owner=gis.users.me.username)
+                                    owner=gis.users.me.username,
+                                    item_properties=item_properties)
         # publish the csv as a hoasted table
         pub_table = tmp_table.publish(None)
         # remove the temp csv file
