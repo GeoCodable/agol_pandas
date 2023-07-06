@@ -329,61 +329,60 @@ def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame,
     arcgis.gis.Item
         arcgis.gis table layer item/object
     """
+    #try:
+    # Check if the dataframe is empty
+    if len(df) == 0:
+        raise ValueError("The dataframe is empty.")
+
+    # format the service name
+    tbl_name = normalize_service_name(name)
+
+    # Check if the name is already in use
+    name_avail = gis.content.is_service_name_available(tbl_name, "featureService")
+    if not name_avail:
+        qs = f'title:{name} AND owner:{gis.users.me.username} AND type:Feature Service'
+        qr = gis.content.search(qs)[0]
+        qr_link = f'{gis.url}/home/item.html?id={qr.itemid}'
+        print(f'Error service name:({tbl_name}) already exists! SEE: {qr_link}')
+        return qr
+
+    # attempt to convert datetime stamps to UTC TZ for AGOL
     try:
-        # Check if the dataframe is empty
-        if len(df) == 0:
-            raise ValueError("The dataframe is empty.")
+        df = convert_dts_utc(df)
+    except:
+        pass
 
-        # format the service name
-        tbl_name = normalize_service_name(name)
+    # Split the dataframe into chunks
+    if len(df) > chunk_size:
+        chunks = [df[i:i+chunk_size] for i in range(0,df.shape[0],chunk_size)]
+    else:
+        chunks = [df]
+    if not bool(chunks):
+        raise ValueError("The dataframe could not be chunked, see chunk_size")
 
-        # Check if the name is already in use
-        name_avail = gis.content.is_service_name_available(tbl_name, "featureService")
-        if not name_avail:
-            qs = f'title:{name} AND owner:{gis.users.me.username} AND type:Feature Service'
-            qr = gis.content.search(qs)[0]
-            qr_link = f'{gis.url}/home/item.html?id={qr.itemid}'
-            print(f'Error service name:({tbl_name}) already exists! SEE: {qr_link}')
-            return qr
+    # create a new table using the first chunk, append for subsequent chunks 
 
-        # attempt to convert datetime stamps to UTC TZ for AGOL
-        try:
-            df = convert_dts_utc(df)
-        except:
-            pass
-
-        # Split the dataframe into chunks
-        if len(df) > chunk_size:
-            chunks = [df[i:i+chunk_size] for i in range(0,df.shape[0],chunk_size)]
+    items = gis.content.search(query=f"title:{tbl_name} AND type:Feature Service AND owner:{gis.users.me.username}")
+    items = [i for i in items if i.title==tbl_name]
+    if len(items) > 0 :
+        table_id = items[0].id
+        pub_table = items[0]
+    else:
+        table_id = None
+        pub_table = None
+    for idx, chunk in enumerate(chunks):
+        if idx == 0 and not bool(table_id):
+            pub_table = create_table(gis, name=tbl_name, df=chunk)
+            if not pub_table:
+                raise ValueError("Table could not be published")
+            table_id = pub_table.id
         else:
-            chunks = [df]
-        if not bool(chunks):
-            raise ValueError("The dataframe could not be chunked, see chunk_size")
-
-        # create a new table using the first chunk, append for subsequent chunks 
-
-        items = gis.content.search(query=f"title:{tbl_name} AND type:Feature Service AND owner:{gis.users.me.username}")
-        items = [i for i in items if i.title==tbl_name]
-        if len(items) > 0 :
-            table_id = items[0].id
-            pub_table = items[0]
-        else:
-            table_id = None
-            pub_table = None
-        for idx, chunk in enumerate(chunks):
-            print(table_id)
-            if idx == 0 and not bool(table_id):
-                pub_table = create_table(gis, name=tbl_name, df=chunk)
-                if not pub_table:
-                    raise ValueError("Table could not be published")
-                table_id = pub_table.id
-            else:
-                df_to_agol_hosted_table(gis, 
-                                        chunk, 
-                                        table_id, 
-                                        mode='append',
-                                        chunk_size=chunk_size)
-        return pub_table             
-    except Exception as e:
-        print(e)
-        return(e)
+            df_to_agol_hosted_table(gis, 
+                                    chunk, 
+                                    table_id, 
+                                    mode='append',
+                                    chunk_size=chunk_size)
+    return pub_table             
+    #except Exception as e:
+        #print(e)
+        #return(e)
