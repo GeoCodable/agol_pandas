@@ -371,6 +371,7 @@ def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame,
             table_id = None
             pub_table = None
         for idx, chunk in enumerate(chunks):
+            print(table_id)
             if idx == 0 and not bool(table_id):
                 pub_table = create_table(gis, name=tbl_name, df=chunk)
                 if not pub_table:
