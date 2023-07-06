@@ -154,108 +154,114 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
               }
             ]                              
     """        
-    # try:
-    results = []
-    tmp_csv = None
-    tmp_table = None
-
-    # check the supplied mode
-    modes = ["append", "overwrite", "upsert", "update", "insert"]
-    if mode not in modes:
-        raise ValueError(f'Unidentified mode supplied: "{mode}"')
-
-    # Check if the dataframe is empty
-    if len(df) == 0:
-        raise ValueError("The dataframe is empty.")
-
-    # attempt to convert datetime stamps to UTC TZ for AGOL
     try:
-        df = convert_dts_utc(df)
-    except:
-        pass
+        results = []
+        tmp_csv = None
+        tmp_table = None
+    
+        # check the supplied mode
+        modes = ["append", "overwrite", "upsert", "update", "insert"]
+        if mode not in modes:
+            raise ValueError(f'Unidentified mode supplied: "{mode}"')
+    
+        # Check if the dataframe is empty
+        if len(df) == 0:
+            raise ValueError("The dataframe is empty.")
+    
+        # attempt to convert datetime stamps to UTC TZ for AGOL
+        try:
+            df = convert_dts_utc(df)
+        except:
+            pass
+    
+        # get the target item table
+        # item = gis.content.search(item_id)[0]
+        item = gis.content.get(item_id) 
 
-    # get the target item table
-    item = gis.content.search(item_id)[0]
-
-    # determine if the item has layers/tables
-    if bool(item.layers):
-        tgt_table = item.layers[0]   
-    if bool(item.tables):
-        tgt_table = item.tables[0]
-
-    # set the append params
-    upsert=False
-    skip_inserts=False
-    skip_updates=False
-    upsert_matching_field=None
-
-    if mode == 'overwrite':
-        tgt_table.manager.truncate()
-
-    elif mode in ['upsert', 'update', 'insert']:
-        if not upsert_column:
-            raise ValueError("""Upsert, update, and insert, require a column with unique keys must be identified.\n
-                             See: https://doc.arcgis.com/en/arcgis-online/manage-data/add-unique-constraint.htm""")
-        if mode =='update':
-            skip_inserts=True
-        if mode =='insert':
-            skip_updates=True            
-        upsert=True
-        upsert_matching_field=upsert_column
-
-    # Split the dataframe into chunks
-    if len(df) > chunk_size:
-        chunks = [df[i:i+chunk_size] for i in range(0,df.shape[0],chunk_size)]
-    else:
-        chunks = [df]
-    if not bool(chunks):
-        raise ValueError("The dataframe could not be chunked, see chunk_size")
-
-    # iterate the chunks and apply the data from the dataframe
-    for idx, chunk in enumerate(chunks):
-        # create a temp csv file path
-        tmp_csv = get_temp_file()
-        chunk.to_csv(tmp_csv)
-        # set the item properties dataframe
-        item_properties = {"title" : tmp_csv}
-        # add/upload the csv to the user's content 
-        tmp_table = gis.content.add(data=tmp_csv , 
-                                     item_properties=item_properties)
-        # get info about the file including fields types and sample records
-        src_info = gis.content.analyze(item=tmp_table.id, 
-                                       file_type='csv', 
-                                       location_type='none')
-
-        result = tgt_table.append(  item_id=tmp_table.id,
-                                    upload_format="csv",
-                                    source_info=src_info['publishParameters'],
-                                    upsert=upsert,
-                                    skip_updates=skip_updates,
-                                    use_globalids=False,
-                                    update_geometry=False,
-                                    append_fields= df.columns.to_list(),
-                                    rollback=True,
-                                    skip_inserts=skip_inserts,
-                                    upsert_matching_field=upsert_matching_field)
-        tmp_table.delete()
-        results.append({'chunk_id': (idx+1), 
-                        'chunk_size': len(chunk),
-                        'mode' : mode, 
-                        'result': result})
-    return results
-    # except Exception as e:
-    #     print(e)
-    # finally:
-    #     try:
-    #         if tmp_csv and os.path.exists(tmp_csv):
-    #             os.remove(tmp_csv)
-    #     except:
-    #         pass                
-    #     try: 
-    #         if bool(tmp_table):
-    #             tmp_table.delete()
-    #     except:
-    #         pass
+        if item:
+            # determine if the item has layers/tables
+            if bool(item.layers):
+                tgt_table = item.layers[0]
+                print(f'layers : {item.layers[0]}')
+            if bool(item.tables):
+                tgt_table = item.tables[0]
+                print(f'layers : {item.tables[0]}')
+        else:
+            print(f'Item with ID {item_id} not found')
+            
+        # set the append params
+        upsert=False
+        skip_inserts=False
+        skip_updates=False
+        upsert_matching_field=None
+    
+        if mode == 'overwrite':
+            tgt_table.manager.truncate()
+    
+        elif mode in ['upsert', 'update', 'insert']:
+            if not upsert_column:
+                raise ValueError("""Upsert, update, and insert, require a column with unique keys must be identified.\n
+                                 See: https://doc.arcgis.com/en/arcgis-online/manage-data/add-unique-constraint.htm""")
+            if mode =='update':
+                skip_inserts=True
+            if mode =='insert':
+                skip_updates=True            
+            upsert=True
+            upsert_matching_field=upsert_column
+    
+        # Split the dataframe into chunks
+        if len(df) > chunk_size:
+            chunks = [df[i:i+chunk_size] for i in range(0,df.shape[0],chunk_size)]
+        else:
+            chunks = [df]
+        if not bool(chunks):
+            raise ValueError("The dataframe could not be chunked, see chunk_size")
+    
+        # iterate the chunks and apply the data from the dataframe
+        for idx, chunk in enumerate(chunks):
+            # create a temp csv file path
+            tmp_csv = get_temp_file()
+            chunk.to_csv(tmp_csv)
+            # set the item properties dataframe
+            item_properties = {"title" : tmp_csv}
+            # add/upload the csv to the user's content 
+            tmp_table = gis.content.add(data=tmp_csv , 
+                                         item_properties=item_properties)
+            # get info about the file including fields types and sample records
+            src_info = gis.content.analyze(item=tmp_table.id, 
+                                           file_type='csv', 
+                                           location_type='none')
+    
+            result = tgt_table.append(  item_id=tmp_table.id,
+                                        upload_format="csv",
+                                        source_info=src_info['publishParameters'],
+                                        upsert=upsert,
+                                        skip_updates=skip_updates,
+                                        use_globalids=False,
+                                        update_geometry=False,
+                                        append_fields= df.columns.to_list(),
+                                        rollback=True,
+                                        skip_inserts=skip_inserts,
+                                        upsert_matching_field=upsert_matching_field)
+            tmp_table.delete()
+            results.append({'chunk_id': (idx+1), 
+                            'chunk_size': len(chunk),
+                            'mode' : mode, 
+                            'result': result})
+        return results
+    except Exception as e:
+        print(e)
+    finally:
+        try:
+            if tmp_csv and os.path.exists(tmp_csv):
+                os.remove(tmp_csv)
+        except:
+            pass                
+        try: 
+            if bool(tmp_table):
+                tmp_table.delete()
+        except:
+            pass
 #-------------------------------------------------------------------------------
 def create_table(gis: GIS, name: str, df: pd.DataFrame):
     """Internal function to upload a new
