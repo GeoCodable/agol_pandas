@@ -178,9 +178,9 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         item = gis.content.search(item_id)[0]
 
         # determine if the item has layers/tables
-        if bool(tgt_table.layers):
+        if bool(item.layers):
             tgt_table = item.layers[0]   
-        if bool(tgt_table.tables):
+        if bool(item.tables):
             tgt_table = item.tables[0]
 
         # set the append params
