@@ -363,7 +363,7 @@ def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame,
         # create a new table using the first chunk, append for subsequent chunks 
 
         items = gis.content.search(query=f"title:{tbl_name} AND type:Feature Service AND owner:{gis.users.me.username}")
-        items = [i for i in items if i.title==item_name]
+        items = [i for i in items if i.title==tbl_name]
         if len(items) > 0 :
             table_id = items[0].id
             pub_table = items[0]
