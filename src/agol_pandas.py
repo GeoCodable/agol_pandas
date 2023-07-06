@@ -182,10 +182,8 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
             # determine if the item has layers/tables
             if bool(item.layers):
                 tgt_table = item.layers[0]
-                print(f'layers : {item.layers[0]}')
             if bool(item.tables):
                 tgt_table = item.tables[0]
-                print(f'layers : {item.tables[0]}')
         else:
             print(f'Item with ID {item_id} not found')
             
