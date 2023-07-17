@@ -82,6 +82,44 @@ def normalize_service_name(service_name: str):
         service_name = service_name[:128]
     return service_name
 #--------------------------------------------------------------------------------
+def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
+    """
+    Generator that sorts and then chunks a PySpark 
+    or pandas DataFrame into DataFrames of the given
+    chunk size.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pyspark.sql.DataFrame
+        The dataframe to sort and chunk.
+    chunk_size: int
+        The max size of each chunk
+    keys: str or list
+        Column name or list of column names to sort 
+        a dataframe on before chunking.
+        Default, None - Sorting will not be applied
+    Returns
+    -------
+    generator : A generator that yields chunks of pandas DataFrames.
+    """      
+    # if a key was supplied, sort the dataframe
+    if bool(keys):
+        if not isinstance(keys, list):
+            keys = [keys]
+            
+    # sort and yield chunked pandas dataframes from pyspark
+    if not isinstance(df, pd.DataFrame):
+        df = df.orderBy(keys)
+        for i in range(0, df.count(), chunk_size):
+            chunk = df.toPandas()[i:i + chunk_size]
+            yield chunk
+    else:
+        # sort and yield chunked pandas dataframes 
+        df = df.sort_values(by=keys)
+        for i in range(0, len(df), chunksize):
+            chunk = df[i:i + chunksize]
+            yield chunk
+#---------------------------------------------------------------------------------- 
 def agol_hosted_item_to_sdf(gis: GIS, item_id: str):
     """
     Reads all data from a hosted layer or tableon ArcGIS Online 
@@ -209,7 +247,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
     
         # Split the dataframe into chunks
         if len(df) > chunk_size:
-            chunks = [df[i:i+chunk_size] for i in range(0,df.shape[0],chunk_size)]
+            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[]):
         else:
             chunks = [df]
         if not bool(chunks):
@@ -311,7 +349,7 @@ def create_table(gis: GIS, name: str, df: pd.DataFrame, item_properties={}):
             pass 
 #-------------------------------------------------------------------------------      
 def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame, 
-                                      chunk_size: int = 5000):
+                                      chunk_size: int = 200000):
     """
     Function creates a new feature service from data in a Pandas or 
     ArcGIS Spatial DataFrame.
@@ -358,7 +396,7 @@ def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame,
     
         # Split the dataframe into chunks
         if len(df) > chunk_size:
-            chunks = [df[i:i+chunk_size] for i in range(0,df.shape[0],chunk_size)]
+            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[]):
         else:
             chunks = [df]
         if not bool(chunks):
