@@ -506,7 +506,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
     
         # Split the dataframe into chunks
         if len(df) > chunk_size:
-            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[key_field_name]):
+            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[key_field_name])
             
             if not key_field_name:
                 mode = 'append'
