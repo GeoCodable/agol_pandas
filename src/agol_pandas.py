@@ -310,7 +310,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         skip_updates=False
         upsert_matching_field=None
 
-         update_modes = ['upsert', 'update', 'insert']
+        update_modes = ['upsert', 'update', 'insert']
         if mode == 'overwrite':
             tgt_table.manager.truncate()
     
