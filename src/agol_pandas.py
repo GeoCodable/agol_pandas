@@ -14,8 +14,11 @@ def get_temp_file(suffix: str = ".csv"):
     Returns:
     A path to a temporary file.
     """
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
-        return f.name
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+            return (f.name, True)
+    except Exception as e:
+        return (str(e), False)
 #--------------------------------------------------------------------------------
 def convert_dts_utc(df: pd.DataFrame):
     """
@@ -32,21 +35,24 @@ def convert_dts_utc(df: pd.DataFrame):
         The Pandas dataframe with all datetime columns converted to 
         UTC timezone.
     """   
-    cols = [c for c in df.columns if pd.api.types.is_datetime64_any_dtype(df[c])]
+    try:
+        cols = [c for c in df.columns if pd.api.types.is_datetime64_any_dtype(df[c])]
 
-    for col in cols:
+        for col in cols:
 
-        if df[col].dtype == 'datetime64[ns]':
+            if df[col].dtype == 'datetime64[ns]':
 
-            df[col] = pd.to_datetime(df[col]).dt.tz_localize('UTC')
+                df[col] = pd.to_datetime(df[col]).dt.tz_localize('UTC')
 
-        else:
+            else:
 
-            df[col] = pd.to_datetime(df[col])
+                df[col] = pd.to_datetime(df[col])
 
-            df[col] = df[col].dt.tz_convert('UTC')
+                df[col] = df[col].dt.tz_convert('UTC')
 
-    return(df)    
+        return(df, True)    
+    except Exception as e:
+        return (str(e), False)
 #--------------------------------------------------------------------------------
 def normalize_service_name(service_name: str):
     """
@@ -66,21 +72,24 @@ def normalize_service_name(service_name: str):
     str
         The normalized service name.
     """
-    # Remove all leading and trailing whitespace.
-    service_name = service_name.strip()
-    # ensure the name does not start with a number
-    if service_name[0].isdigit():
-        service_name = f'_{service_name}'
-    # Preplace all characters that are not letters, numbers, or underscores.
-    service_name = re.sub(r"[^\w]", "_", service_name)
-    # Replace all consecutive underscore characters wit a single underscore.
-    service_name = re.sub('_+', '_', service_name)
-    # Convert the name to lowercase.
-    service_name = service_name.lower()
-    # Truncate the name to 128 characters.
-    if len(service_name) > 128:
-        service_name = service_name[:128]
-    return service_name
+    try:
+        # Remove all leading and trailing whitespace.
+        service_name = service_name.strip()
+        # ensure the name does not start with a number
+        if service_name[0].isdigit():
+            service_name = f'_{service_name}'
+        # Preplace all characters that are not letters, numbers, or underscores.
+        service_name = re.sub(r"[^\w]", "_", service_name)
+        # Replace all consecutive underscore characters wit a single underscore.
+        service_name = re.sub('_+', '_', service_name)
+        # Convert the name to lowercase.
+        service_name = service_name.lower()
+        # Truncate the name to 128 characters.
+        if len(service_name) > 128:
+            service_name = service_name[:128]
+        return (service_name, True)
+    except Exception as e:
+        return (str(e), False)        
 #--------------------------------------------------------------------------------
 def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
     """
@@ -101,24 +110,27 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
     Returns
     -------
     generator : A generator that yields chunks of pandas DataFrames.
-    """      
-    # if a key was supplied, sort the dataframe
-    if bool(keys):
-        if not isinstance(keys, list):
-            keys = [keys]
-            
-    # sort and yield chunked pandas dataframes from pyspark
-    if not isinstance(df, pd.DataFrame):
-        df = df.orderBy(keys)
-        for i in range(0, df.count(), chunk_size):
-            chunk = df.toPandas()[i:i + chunk_size]
-            yield chunk
-    else:
-        # sort and yield chunked pandas dataframes 
-        df = df.sort_values(by=keys)
-        for i in range(0, len(df), chunksize):
-            chunk = df[i:i + chunksize]
-            yield chunk
+    """    
+    try:
+        # if a key was supplied, sort the dataframe
+        if bool(keys):
+            if not isinstance(keys, list):
+                keys = [keys]
+                
+        # sort and yield chunked pandas dataframes from pyspark
+        if not isinstance(df, pd.DataFrame):
+            df = df.orderBy(keys)
+            for i in range(0, df.count(), chunk_size):
+                chunk = df.toPandas()[i:i + chunk_size]
+                yield chunk
+        else:
+            # sort and yield chunked pandas dataframes 
+            df = df.sort_values(by=keys)
+            for i in range(0, len(df), chunksize):
+                chunk = df[i:i + chunksize]
+                yield chunk
+    except Exception as e:
+        return str(e)   
 #---------------------------------------------------------------------------------- 
 def agol_hosted_item_to_sdf(gis: GIS, item_id: str):
     """
@@ -137,20 +149,23 @@ def agol_hosted_item_to_sdf(gis: GIS, item_id: str):
     sdf : pd.DataFrame
         A Pandas dataframe containing the data from the hosted layer.
     """
-    # Get the layer object from ArcGIS Online.
-    item = gis.content.get(item_id)
+    try:
+        # Get the layer object from ArcGIS Online.
+        item = gis.content.get(item_id)
 
-    # determine if the item has layers/tables
-    if bool(item.layers):
-        table = item.layers[0]    
-    if bool(item.tables):
-        table = item.tables[0]
+        # determine if the item has layers/tables
+        if bool(item.layers):
+            table = item.layers[0]    
+        if bool(item.tables):
+            table = item.tables[0]
 
-    # Get the query results from the layer.
-    query_results = table.query(return_all_records=True)
+        # Get the query results from the layer.
+        query_results = table.query(return_all_records=True)
 
-    # Return the query results as a Pandas dataframe.
-    return query_results.sdf
+        # Return the query results as a Pandas dataframe.
+        return (query_results.sdf, True)
+    except Exception as e:
+        return (str(e), False) 
 #-------------------------------------------------------------------------------- 
 def set_unique_key_constraint(table_id, key_field_name):
     """
@@ -176,43 +191,46 @@ def set_unique_key_constraint(table_id, key_field_name):
     * The function checks if the field already has a unique index before creating a new one.
     * The function waits for the index to be created before returning.
     """
-    
-    item = gis.content.get(table_id) 
+    try:
+        item = gis.content.get(table_id) 
 
-    # determine if the item has layers/tables
-    if bool(item.layers):
-        tgt_table = item.layers[0] 
-    if bool(item.tables):
-        tgt_table = item.tables[0]
-    
-    def fld_has_unique_idx(key_field_name):
-        idx_fld_names = [f.fields.lower() 
-                        for f in tgt_table.properties.indexes 
-                        if f.isUnique]
-        return key_field_name.lower() in idx_fld_names
-    
-    if not fld_has_unique_idx(key_field_name):
-        idxName = f'UX_{item.title.upper()}_{tgt_table._lazy_properties.name.upper()}_{key_field_name}_ASC'
-        print(f'Adding index to {tgt_table._lazy_properties.name} on field "{key_field_name}" named as "{idxName}"')
-        new_idx = {}
-        new_idx['name'] = idxName
-        new_idx['fields'] = key_field_name
-        new_idx['isUnique'] = True
-        new_idx['description'] = "Field properties"
-        tgt_table.manager.add_to_definition({"indexes":[new_idx]})
+        # determine if the item has layers/tables
+        if bool(item.layers):
+            tgt_table = item.layers[0] 
+        if bool(item.tables):
+            tgt_table = item.tables[0]
+        
+        def fld_has_unique_idx(key_field_name):
+            idx_fld_names = [f.fields.lower() 
+                            for f in tgt_table.properties.indexes 
+                            if f.isUnique]
+            return key_field_name.lower() in idx_fld_names
+        
+        if not fld_has_unique_idx(key_field_name):
+            idxName = f'UX_{item.title.upper()}_{tgt_table._lazy_properties.name.upper()}_{key_field_name}_ASC'
+            print(f'Adding index to {tgt_table._lazy_properties.name} on field "{key_field_name}" named as "{idxName}"')
+            new_idx = {}
+            new_idx['name'] = idxName
+            new_idx['fields'] = key_field_name
+            new_idx['isUnique'] = True
+            new_idx['description'] = "Field properties"
+            tgt_table.manager.add_to_definition({"indexes":[new_idx]})
 
-        for x in range(12): # attempt every 5 secs for 1 min
-            time.sleep(5)
-            status = fld_has_unique_idx(key_field_name)
-            if status:
-                print('\t-Index created successfully!')
-                break
-    else:
-        return True
-    return(status)
+            for x in range(12): # attempt every 5 secs for 1 min
+                time.sleep(5)
+                status = fld_has_unique_idx(key_field_name)
+                if status:
+                    print('\t-Index created successfully!')
+                    break
+            return (status, True)
+        else:
+            return (True, True)
+    except Exception as e:
+        return (str(e), False)
 #--------------------------------------------------------------------------------
 def df_to_agol_hosted_table(gis, df, item_id, mode='append', 
-                            upsert_column=None,  chunk_size: int = 5000):
+                            upsert_column=None, chunk_size=100000,
+                            item_properties={}):
     """
     Function will "append", "overwrite", "upsert", 
     "update", or "insert" data from a pandas dataframe
@@ -267,7 +285,9 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
     
         # attempt to convert datetime stamps to UTC TZ for AGOL
         try:
-            df = convert_dts_utc(df)
+            df, pStatus = convert_dts_utc(df)
+            if not pStatus: 
+                print('Failed to convert datetime stamps')
         except:
             pass
     
@@ -293,7 +313,8 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         if mode == 'overwrite':
             tgt_table.manager.truncate()
     
-        elif mode in ['upsert', 'update', 'insert']:
+        update_modes = ['upsert', 'update', 'insert']
+        elif mode in update_modes:
             if not upsert_column:
                 raise ValueError("""Upsert, update, and insert, require a column with unique keys must be identified.\n
                                  See: https://doc.arcgis.com/en/arcgis-online/manage-data/add-unique-constraint.htm""")
@@ -303,22 +324,35 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
                 skip_updates=True            
             upsert=True
             upsert_matching_field=upsert_column
-    
+            
+            #---------------------------
+            idx_test = set_unique_key_constraint(item_id, upsert_column)
+            if not idx_test:
+                raise ValueError(f"Unique field constraint required for {update_modes}!")
+            #---------------------------      
+        
         # Split the dataframe into chunks
         if len(df) > chunk_size:
-            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[]):
+            if upsert_column: 
+                key_flds = [upsert_column]
+            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=key_flds):
         else:
             chunks = [df]
         if not bool(chunks):
             raise ValueError("The dataframe could not be chunked, see chunk_size")
-    
+       
         # iterate the chunks and apply the data from the dataframe
         for idx, chunk in enumerate(chunks):
+        
             # create a temp csv file path
-            tmp_csv = get_temp_file()
+            tmp_csv, pStatus = get_temp_file()
+            if not pStatus:
+                raise Exception(tmp_csv)
+                
             chunk.to_csv(tmp_csv)
             # set the item properties dataframe
-            item_properties = {"title" : tmp_csv}
+            if not bool(item_properties):
+                item_properties = {"title" : tmp_csv}
             # add/upload the csv to the user's content 
             tmp_table = gis.content.add(data=tmp_csv , 
                                          item_properties=item_properties)
@@ -343,9 +377,9 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
                             'chunk_size': len(chunk),
                             'mode' : mode, 
                             'result': result})
-        return results
+        return (results, True)
     except Exception as e:
-        print(e)
+        return (str(e), False) 
     finally:
         try:
             if tmp_csv and os.path.exists(tmp_csv):
@@ -358,7 +392,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         except:
             pass
 #-------------------------------------------------------------------------------
-def create_table(gis: GIS, name: str, df: pd.DataFrame, key_field_name, item_properties={}):
+def create_table(gis, name, df, key_field_name, item_properties={}):
     """Internal function to upload a new
     csv and create a new hoasted table
     Parameters
@@ -379,7 +413,10 @@ def create_table(gis: GIS, name: str, df: pd.DataFrame, key_field_name, item_pro
         tmp_csv = None
         tmp_table = None
         # create a temp csv file path
-        tmp_csv = get_temp_file()
+        tmp_csv, pStatus = get_temp_file()
+        if not pStatus:
+            raise Exception(tmp_csv)        
+        
         # export he dataframe to csv
         df.to_csv(tmp_csv)
         # set the item properties dataframe
@@ -397,9 +434,9 @@ def create_table(gis: GIS, name: str, df: pd.DataFrame, key_field_name, item_pro
         if not idx_test:
             raise ValueError("Could not create unique field constraint for appends!")
         #---------------------------        
-        return pub_table
+        return (pub_table, True)
     except Exception as e:
-        print(e)
+        return (str(e), False) 
         try: 
             if tmp_table:
                 tmp_table.delete()
@@ -412,8 +449,9 @@ def create_table(gis: GIS, name: str, df: pd.DataFrame, key_field_name, item_pro
         except:
             pass 
 #-------------------------------------------------------------------------------      
-def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame, 
-                                      chunk_size: int = 200000):
+def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = None, table_id=None, 
+                                      chunk_size: int = 200000,key_field_name: str = None,
+                                      item_properties: dict ={}):
     """
     Function creates a new feature service from data in a Pandas or 
     ArcGIS Spatial DataFrame.
@@ -440,149 +478,90 @@ def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame,
         if len(df) == 0:
             raise ValueError("The dataframe is empty.")
     
-        # format the service name
-        tbl_name = normalize_service_name(name)
-    
-        # Check if the name is already in use
-        name_avail = gis.content.is_service_name_available(tbl_name, "featureService")
-        if not name_avail:
-            qs = f'title:{name} AND owner:{gis.users.me.username} AND type:Feature Service'
-            qr = gis.content.search(qs)[0]
-            qr_link = f'{gis.url}/home/item.html?id={qr.itemid}'
-            print(f'Error service name:({tbl_name}) already exists! SEE: {qr_link}')
-            return qr
-    
-        # attempt to convert datetime stamps to UTC TZ for AGOL
-        try:
-            df = convert_dts_utc(df)
-        except:
-            pass
-    
-        # Split the dataframe into chunks
-        if len(df) > chunk_size:
-            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[]):
-        else:
-            chunks = [df]
-        if not bool(chunks):
-            raise ValueError("The dataframe could not be chunked, see chunk_size")
-    
-        # create a new table using the first chunk, append for subsequent chunks 
-    
-        items = gis.content.search(query=f"title:{tbl_name} AND type:Feature Service AND owner:{gis.users.me.username}")
-        items = [i for i in items if i.title==tbl_name]
-        if len(items) > 0 :
-            table_id = items[0].id
-            pub_table = items[0]
-        else:
-            table_id = None
+        if not bool(name) or bool(table_id):
+            raise ValueError("An item ID or name is required.")
+        if table_id:
+            pub_table = gis.content.get(table_id)
+        elif name:
+            # format the service name
+            tbl_name, pStatus = normalize_service_name(name)
+            if not pStatus: 
+                    print('Failed to normalize service name')       
             pub_table = None
-        for idx, chunk in enumerate(chunks):
-            if idx == 0 and not bool(table_id):
-                pub_table = create_table(gis, name=tbl_name, df=chunk)
-                if not pub_table:
-                    raise ValueError("Table could not be published")
-                table_id = pub_table.id
-            else:
-                df_to_agol_hosted_table(gis, 
-                                        chunk, 
-                                        table_id, 
-                                        mode='append',
-                                        chunk_size=chunk_size)
-        return pub_table             
-    except Exception as e:
-        print(e)
-        return(e)
-#-------------------------------------------------------------------------------            
-def create_or_update_item_from_df(gis, df, name=None, table_id=None, 
-                                  key_field_name=None, chunk_size=200000):
-    """
-    Function creates a new feature service from data in a Pandas or 
-    ArcGIS Spatial DataFrame.
-
-    Parameters
-    ----------
-    gis : arcgis.gis.GIS
-        The GIS object to use for creating the feature service.
-    name : str
-        The name to use for the new feature service.
-    df : pandas.DataFrame 
-        The DataFrame containing the data to use for creating the feature service.
-    chunk_size : int, optional
-        The number of rows to include in each chunk. If not specified, 
-        a default chunk size will be used.
-
-    Returns
-    -------
-    arcgis.gis.Item
-        arcgis.gis table layer item/object
-    """
-    status = []
-    d = {}
-    try:
-        # Check if the dataframe is empty
-        if len(df) == 0:
-            raise ValueError("The dataframe is empty.")
     
-        # format the service name
-        tbl_name = normalize_service_name(name)
-
+            items = gis.content.search(query=f"title:{tbl_name} AND type:Feature Service AND owner:{gis.users.me.username}")
+            items = [i for i in items if i.title==tbl_name]
+            if len(items) > 0 :
+                table_id = items[0].id
+                pub_table = items[0]
+    
+    
         # attempt to convert datetime stamps to UTC TZ for AGOL
         try:
-            df = convert_dts_utc(df)
+            df, pStatus = convert_dts_utc(df)
+            if not pStatus: 
+                print('Failed to convert datetime stamps')
         except:
             pass
     
         # Split the dataframe into chunks
         if len(df) > chunk_size:
             chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[key_field_name]):
+            
+            if not key_field_name:
+                mode = 'append'
+            else:
+                mode = 'upsert'
         else:
             chunks = [df]
         if not bool(chunks):
             raise ValueError("The dataframe could not be chunked, see chunk_size")
     
-        for chunk in chunks:
-            d = {'chunk': 'chunk', 'row_start': chunk.index[0] + 1, 
-                    'row_end': chunk.index[-1] + 1, 'status': 'Error'}  
+        chnk_results = []
+        
+        # create a new table or update an existing using the first chunk, append for subsequent chunks 
+        for idx, chunk in enumerate(chunks):
+        
+            # Sort the IDs in ascending order
+            sorted_uids = chunk[key_field_name].sort_values()
+        
+            cr = {'chunk_id': (idx+1), 
+                  'chunk_size': len(chunk),
+                  'row_start': chunk.index[0] + 1,
+                  'row_end': chunk.index[-1] + 1,
+                  'start_id': sorted_uids.iloc[0],
+                  'end_id': sorted_uids.iloc[-1],                  
+                  'Success' = False}        
 
-            # create a new table using the first chunk, append for subsequent chunks 
-            try:
-                if not table_id:
-                    query=f"title:{name} AND type:Feature Service AND owner:{gis.users.me.username}"
-                    items = gis.content.search(query=query)
-                    items = [i for i in items if i.title==name]
-                    if len(items) > 0 :
-                        table_id = items[0].id
-                        pub_table = gis.content.get(table_id) 
-                    else:
-                        pub_table = create_table(gis, 
-                                                    name=name, 
-                                                    df=chunk, 
-                                                    key_field_name=key_field_name,
-                                                    item_properties=item_properties)
-                        if not pub_table:
-                            d['status'] = 'Error'
-                            status.append(d)  
-                            raise ValueError("Table could not be published")
-                        else:
-                            table_id = pub_table.id
-                            print(f'Crated table "{name}" with ID: {table_id}')
-                            d['status'] = 'Success'
-                            status.append(d)   
+                    
+            if idx == 0 and not bool(table_id):
+                cr['mode'] ='create'
+                pub_table, pStatus = create_table(gis=gis, 
+                                                  name=tbl_name, 
+                                                  df=chunk, 
+                                                  key_field_name=key_field_name,
+                                                  item_properties=item_properties )
+                if not pStatus:
+                    raise ValueError("Table could not be created")
                 else:
-                    df_to_agol_hosted_table(gis, chunk, table_id, mode='upsert', 
-                                    upsert_column=key_field_name, chunk_size=chunk_size)
-                    d['status'] = 'Success'
-                    status.append(d)            
-            except Exception as e:
-                d['status'] = 'Error'
-                d['Error Messages'] = str(e)
-                status.append(d)
-                print(f'Failed to load chunk, Rows {chunk.index[0] + 1}-{chunk.index[-1] + 1}, {e}' )
-        return(status)
+                    table_id = pub_table.id
+            else: 
+                results, pStatus = df_to_agol_hosted_table( gis=gis, 
+                                                            df=chunk, 
+                                                            item_id=table_id, 
+                                                            mode=mode,
+                                                            chunk_size=chunk_size,
+                                                            upsert_column=key_field_name,
+                                                            chunk_size=chunk_size,
+                                                            item_properties=item_properties
+                                                           ) 
+                cr['Messages'] = results[0]
+                cr['mode'] = mode
+            cr['Success'] = pStatus
+            cr['item_id'] = table_id
+            chnk_results.append(cr)
+        return (chnk_results, True)             
     except Exception as e:
-        d['status'] = 'Error'
-        d['Error Messages'] = str(e)
-        status.append(d)    
-    finally:
-        return(status)
-#-------------------------------------------------------------------------------        
+        return (str(e), False) 
+        return(e)
+#-------------------------------------------------------------------------------            
