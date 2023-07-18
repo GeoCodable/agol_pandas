@@ -280,16 +280,19 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
             raise ValueError(f'Unidentified mode supplied: "{mode}"')
     
         # Check if the dataframe is empty
-        if len(df) == 0:
-            raise ValueError("The dataframe is empty.")
-    
-        # attempt to convert datetime stamps to UTC TZ for AGOL
-        try:
-            df, pStatus = convert_dts_utc(df)
-            if not pStatus: 
-                print('Failed to convert datetime stamps')
-        except:
-            pass
+        if isinstance(df, pd.DataFrame):
+            if len(df) == 0:
+                raise ValueError("The dataframe is empty.")
+            # attempt to convert datetime stamps to UTC TZ for AGOL
+            try:
+                df, pStatus = convert_dts_utc(df)
+                if not pStatus: 
+                    print('Failed to convert datetime stamps')
+            except:
+                pass
+        else:
+            if df.count() == 0
+                raise ValueError("The dataframe is empty.")
     
         # get the target item table
         # item = gis.content.search(item_id)[0]
@@ -475,8 +478,21 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
     """
     try:
         # Check if the dataframe is empty
-        if len(df) == 0:
-            raise ValueError("The dataframe is empty.")
+        if isinstance(df, pd.DataFrame):
+            total_rows = len(df)
+            if total_rows == 0:
+                raise ValueError("The dataframe is empty.")
+            # attempt to convert datetime stamps to UTC TZ for AGOL
+            try:
+                df, pStatus = convert_dts_utc(df)
+                if not pStatus: 
+                    print('Failed to convert datetime stamps')
+            except:
+                pass
+        else:
+            total_rows = df.count()
+            if total_rows == 0
+                raise ValueError("The dataframe is empty.")
     
         if not bool(name) or bool(table_id):
             raise ValueError("An item ID or name is required.")
@@ -505,9 +521,8 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
             pass
     
         # Split the dataframe into chunks
-        if len(df) > chunk_size:
+        if total_rows > chunk_size:
             chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[key_field_name])
-            
             if not key_field_name:
                 mode = 'append'
             else:
