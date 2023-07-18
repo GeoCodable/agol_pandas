@@ -152,6 +152,65 @@ def agol_hosted_item_to_sdf(gis: GIS, item_id: str):
     # Return the query results as a Pandas dataframe.
     return query_results.sdf
 #-------------------------------------------------------------------------------- 
+def set_unique_key_constraint(table_id, key_field_name):
+    """
+    Function adds a unique key constraint to the specified hosted table or layer.
+    
+    Parameters:
+        table_id: str: 
+            The ID of the table.
+        key_field_name str: 
+            The name of the field to add the unique constraint to.
+    
+    Returns:
+        bool: 
+            True if the constraint was created successfully, False otherwise.
+    
+    **Example:**
+    
+    >>> set_unique_key_constraint('my_table_id', 'my_field_name')
+    True
+    
+    **Notes:**
+    
+    * The function checks if the field already has a unique index before creating a new one.
+    * The function waits for the index to be created before returning.
+    """
+    
+    item = gis.content.get(table_id) 
+
+    # determine if the item has layers/tables
+    if bool(item.layers):
+        tgt_table = item.layers[0] 
+    if bool(item.tables):
+        tgt_table = item.tables[0]
+    
+    def fld_has_unique_idx(key_field_name):
+        idx_fld_names = [f.fields.lower() 
+                        for f in tgt_table.properties.indexes 
+                        if f.isUnique]
+        return key_field_name.lower() in idx_fld_names
+    
+    if not fld_has_unique_idx(key_field_name):
+        idxName = f'UX_{item.title.upper()}_{tgt_table._lazy_properties.name.upper()}_{key_field_name}_ASC'
+        print(f'Adding index to {tgt_table._lazy_properties.name} on field "{key_field_name}" named as "{idxName}"')
+        new_idx = {}
+        new_idx['name'] = idxName
+        new_idx['fields'] = key_field_name
+        new_idx['isUnique'] = True
+        new_idx['description'] = "Field properties"
+        tgt_table.manager.add_to_definition({"indexes":[new_idx]})
+
+        for x in range(12): # attempt every 5 secs for 1 min
+            time.sleep(5)
+            status = fld_has_unique_idx(key_field_name)
+            if status:
+                print('\t-Index created successfully!')
+                break
+    else:
+        return True
+    return(status)
+#--------------------------------------------------------------------------------
 def df_to_agol_hosted_table(gis, df, item_id, mode='append', 
                             upsert_column=None,  chunk_size: int = 5000):
     """
@@ -299,7 +358,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         except:
             pass
 #-------------------------------------------------------------------------------
-def create_table(gis: GIS, name: str, df: pd.DataFrame, item_properties={}):
+def create_table(gis: GIS, name: str, df: pd.DataFrame, key_field_name, item_properties={}):
     """Internal function to upload a new
     csv and create a new hoasted table
     Parameters
@@ -333,6 +392,11 @@ def create_table(gis: GIS, name: str, df: pd.DataFrame, item_properties={}):
         pub_table = tmp_table.publish(None)
         # remove the temp csv file
         os.remove(tmp_csv)
+        #---------------------------
+        idx_test = set_unique_key_constraint(pub_table.id, key_field_name)
+        if not idx_test:
+            raise ValueError("Could not create unique field constraint for appends!")
+        #---------------------------        
         return pub_table
     except Exception as e:
         print(e)
@@ -428,3 +492,97 @@ def create_hosted_table_from_dataframe(gis: GIS, name: str, df: pd.DataFrame,
     except Exception as e:
         print(e)
         return(e)
+#-------------------------------------------------------------------------------            
+def create_or_update_item_from_df(gis, df, name=None, table_id=None, 
+                                  key_field_name=None, chunk_size=200000):
+    """
+    Function creates a new feature service from data in a Pandas or 
+    ArcGIS Spatial DataFrame.
+
+    Parameters
+    ----------
+    gis : arcgis.gis.GIS
+        The GIS object to use for creating the feature service.
+    name : str
+        The name to use for the new feature service.
+    df : pandas.DataFrame 
+        The DataFrame containing the data to use for creating the feature service.
+    chunk_size : int, optional
+        The number of rows to include in each chunk. If not specified, 
+        a default chunk size will be used.
+
+    Returns
+    -------
+    arcgis.gis.Item
+        arcgis.gis table layer item/object
+    """
+    status = []
+    d = {}
+    try:
+        # Check if the dataframe is empty
+        if len(df) == 0:
+            raise ValueError("The dataframe is empty.")
+    
+        # format the service name
+        tbl_name = normalize_service_name(name)
+
+        # attempt to convert datetime stamps to UTC TZ for AGOL
+        try:
+            df = convert_dts_utc(df)
+        except:
+            pass
+    
+        # Split the dataframe into chunks
+        if len(df) > chunk_size:
+            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=[key_field_name]):
+        else:
+            chunks = [df]
+        if not bool(chunks):
+            raise ValueError("The dataframe could not be chunked, see chunk_size")
+    
+        for chunk in chunks:
+            d = {'chunk': 'chunk', 'row_start': chunk.index[0] + 1, 
+                    'row_end': chunk.index[-1] + 1, 'status': 'Error'}  
+
+            # create a new table using the first chunk, append for subsequent chunks 
+            try:
+                if not table_id:
+                    query=f"title:{name} AND type:Feature Service AND owner:{gis.users.me.username}"
+                    items = gis.content.search(query=query)
+                    items = [i for i in items if i.title==name]
+                    if len(items) > 0 :
+                        table_id = items[0].id
+                        pub_table = gis.content.get(table_id) 
+                    else:
+                        pub_table = create_table(gis, 
+                                                    name=name, 
+                                                    df=chunk, 
+                                                    key_field_name=key_field_name,
+                                                    item_properties=item_properties)
+                        if not pub_table:
+                            d['status'] = 'Error'
+                            status.append(d)  
+                            raise ValueError("Table could not be published")
+                        else:
+                            table_id = pub_table.id
+                            print(f'Crated table "{name}" with ID: {table_id}')
+                            d['status'] = 'Success'
+                            status.append(d)   
+                else:
+                    df_to_agol_hosted_table(gis, chunk, table_id, mode='upsert', 
+                                    upsert_column=key_field_name, chunk_size=chunk_size)
+                    d['status'] = 'Success'
+                    status.append(d)            
+            except Exception as e:
+                d['status'] = 'Error'
+                d['Error Messages'] = str(e)
+                status.append(d)
+                print(f'Failed to load chunk, Rows {chunk.index[0] + 1}-{chunk.index[-1] + 1}, {e}' )
+        return(status)
+    except Exception as e:
+        d['status'] = 'Error'
+        d['Error Messages'] = str(e)
+        status.append(d)    
+    finally:
+        return(status)
+#-------------------------------------------------------------------------------        
