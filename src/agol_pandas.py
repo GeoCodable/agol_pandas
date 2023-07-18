@@ -494,7 +494,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                 raise ValueError("The dataframe is empty.")
         else:
             total_rows = df.count()
-            if total_rows == 0
+            if total_rows == 0:
                 raise ValueError("The dataframe is empty.")
     
         if not bool(name) or bool(table_id):
