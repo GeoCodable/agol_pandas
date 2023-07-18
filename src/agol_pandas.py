@@ -552,7 +552,6 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                             mode=mode,
                                                             chunk_size=chunk_size,
                                                             upsert_column=key_field_name,
-                                                            chunk_size=chunk_size,
                                                             item_properties=item_properties
                                                            ) 
                 cr['Messages'] = results[0]
