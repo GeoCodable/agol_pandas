@@ -335,7 +335,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         if len(df) > chunk_size:
             if upsert_column: 
                 key_flds = [upsert_column]
-            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=key_flds):
+            chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=key_flds)
         else:
             chunks = [df]
         if not bool(chunks):
