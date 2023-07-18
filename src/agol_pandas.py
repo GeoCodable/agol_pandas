@@ -531,7 +531,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                   'row_end': chunk.index[-1] + 1,
                   'start_id': sorted_uids.iloc[0],
                   'end_id': sorted_uids.iloc[-1],                  
-                  'Success' = False}        
+                  'Success' : False}        
 
                     
             if idx == 0 and not bool(table_id):
