@@ -309,11 +309,11 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         skip_inserts=False
         skip_updates=False
         upsert_matching_field=None
-    
+
+        update_modes = ['upsert', 'update', 'insert']
         if mode == 'overwrite':
             tgt_table.manager.truncate()
     
-        update_modes = ['upsert', 'update', 'insert']
         elif mode in update_modes:
             if not upsert_column:
                 raise ValueError("""Upsert, update, and insert, require a column with unique keys must be identified.\n
