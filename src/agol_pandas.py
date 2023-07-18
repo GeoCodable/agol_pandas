@@ -287,7 +287,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         try:
             df, pStatus = convert_dts_utc(df)
             if not pStatus: 
-                print('Failed to convert datetime stamps')
+                print(f'Failed to convert datetime  {df}')
         except:
             pass
     
