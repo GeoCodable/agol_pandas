@@ -169,7 +169,7 @@ def agol_hosted_item_to_sdf(gis: GIS, item_id: str):
     except Exception as e:
         return (str(e), False) 
 #-------------------------------------------------------------------------------- 
-def set_unique_key_constraint(table_id, key_field_name):
+def set_unique_key_constraint(gis, table_id, key_field_name):
     """
     Function adds a unique key constraint to the specified hosted table or layer.
     
@@ -185,7 +185,7 @@ def set_unique_key_constraint(table_id, key_field_name):
     
     **Example:**
     
-    >>> set_unique_key_constraint('my_table_id', 'my_field_name')
+    >>> set_unique_key_constraint(gis, 'my_table_id', 'my_field_name')
     True
     
     **Notes:**
@@ -328,7 +328,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
             upsert_matching_field=upsert_column
             
             #---------------------------
-            idx_test = set_unique_key_constraint(item_id, upsert_column)
+            idx_test = set_unique_key_constraint(gis, item_id, upsert_column)
             if not idx_test:
                 raise ValueError(f"Unique field constraint required for {update_modes}!")
             #---------------------------      
@@ -445,7 +445,7 @@ def create_table(gis, name, df, key_field_name, item_properties={}):
         # remove the temp csv file
         os.remove(tmp_csv)
         #---------------------------
-        idx_test = set_unique_key_constraint(pub_table.id, key_field_name)
+        idx_test = set_unique_key_constraint(gis, pub_table.id, key_field_name)
         if not idx_test:
             raise ValueError("Could not create unique field constraint for appends!")
         #---------------------------        
