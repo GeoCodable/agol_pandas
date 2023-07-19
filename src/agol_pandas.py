@@ -552,6 +552,8 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                     raise ValueError("Table could not be created")
                 else:
                     table_id = pub_table.id
+                    print(f'Item created with name:({tbl_name}) and Item ID: ({table_id})'
+                    print(f'Loaded {chunk_size * idx} rows', end='\r')
             else: 
                 results, pStatus = df_to_agol_hosted_table( gis=gis, 
                                                             df=chunk, 
@@ -561,6 +563,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                             upsert_column=key_field_name,
                                                             item_properties=item_properties
                                                            ) 
+                print(f'Loaded {chunk_size * idx} rows', end='\r')
                 cr['Messages'] = results
                 cr['mode'] = mode
             cr['Success'] = pStatus
