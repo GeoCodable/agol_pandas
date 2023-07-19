@@ -31,6 +31,6 @@ setuptools.setup(
     install_requires=[                      # package dependencies
                         'arcgis==1.9.1',
                         'pandas>=1.1',
-                        'tqdm>=4.64.1,
+                        'tqdm>=4.64.1',
                     ]
     )
