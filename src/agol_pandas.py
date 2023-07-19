@@ -340,10 +340,10 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
             chunks = [df]
         if not bool(chunks):
             raise ValueError("The dataframe could not be chunked, see chunk_size")
-       
+        rec_loaded = 0
         # iterate the chunks and apply the data from the dataframe
         for idx, chunk in enumerate(chunks):
-           
+                       
             # create a temp csv file path
             tmp_csv, pStatus = get_temp_file()
             if not pStatus:
@@ -372,6 +372,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
                                         rollback=True,
                                         skip_inserts=skip_inserts,
                                         upsert_matching_field=upsert_matching_field)
+            rec_loaded += len(chunk)
             print(f'Loaded {chunk_size * (idx+1)} of {total_rows} rows', end='\r')
             tmp_table.delete()
             r_dict = {'chunk_id': (idx+1), 'chunk_size': len(chunk),
@@ -526,7 +527,8 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
             raise ValueError("The dataframe could not be chunked, see chunk_size")
     
         chnk_results = []
-        
+
+        rec_loaded = 0
         # create a new table or update an existing using the first chunk, append for subsequent chunks 
         for idx, chunk in enumerate(chunks):
         
@@ -554,6 +556,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                 else:
                     table_id = pub_table.id
                     print(f'Item created with name:({tbl_name}) and Item ID: ({table_id})')
+                    rec_loaded += len(chunk)
                     print(f'Loaded {chunk_size * (idx+1)} of {total_rows} rows', end='\r')
             else: 
                 results, pStatus = df_to_agol_hosted_table( gis=gis, 
@@ -564,6 +567,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                             upsert_column=key_field_name,
                                                             item_properties=item_properties
                                                            ) 
+                rec_loaded += len(chunk)
                 print(f'Loaded {chunk_size * (idx+1)} of {total_rows} rows', end='\r')
                 cr['Messages'] = results
                 cr['mode'] = mode
