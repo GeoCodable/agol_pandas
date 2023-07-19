@@ -113,7 +113,7 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
     -------
     generator : A generator that yields chunks of pandas DataFrames.
     """
-    print(f ‘Generating chunks from dataframe')
+    print(f'Generating chunks from dataframe')
 
     # Check if the dataframe is empty
     if isinstance(df, pd.DataFrame):
