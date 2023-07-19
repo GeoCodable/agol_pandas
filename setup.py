@@ -30,7 +30,7 @@ setuptools.setup(
     package_dir={'':'src'},                 # directory of the source code of the package
     install_requires=[                      # package dependencies
                         'arcgis==1.9.1',
-                        'pandas>=1.1',
+                        'pandas',
                         'tqdm>=4.64.1',
                     ]
     )
