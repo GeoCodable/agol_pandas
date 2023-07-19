@@ -280,19 +280,17 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
         modes = ["append", "overwrite", "upsert", "update", "insert"]
         if mode not in modes:
             raise ValueError(f'Unidentified mode supplied: "{mode}"')
-    
+
         # Check if the dataframe is empty
-        total_rows = len(df)
-        if total_rows == 0:
-            raise ValueError("The dataframe is empty.")
-        # attempt to convert datetime stamps to UTC TZ for AGOL
-        try:
-            df, pStatus = convert_dts_utc(df)
-            if not pStatus: 
-                print(f'Failed to convert datetime  {df}')
-        except:
-            pass
-    
+        if isinstance(df, pd.DataFrame):
+            total_rows = len(df)
+            if total_rows == 0:
+                raise ValueError("The dataframe is empty.")
+        else:
+            total_rows = df.count()
+            if total_rows == 0:
+                raise ValueError("The dataframe is empty.")
+                    
         # get the target item table
         # item = gis.content.search(item_id)[0]
         item = gis.content.get(item_id) 
@@ -334,7 +332,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
             #---------------------------      
         
         # Split the dataframe into chunks
-        if len(df) > chunk_size:
+        if total_rows > chunk_size:
             if upsert_column: 
                 key_flds = [upsert_column]
             chunks = df_to_pandas_chunks(df, chunk_size=chunk_size, keys=key_flds)
@@ -345,7 +343,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
        
         # iterate the chunks and apply the data from the dataframe
         for idx, chunk in enumerate(chunks):
-        
+           
             # create a temp csv file path
             tmp_csv, pStatus = get_temp_file()
             if not pStatus:
@@ -375,10 +373,9 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
                                         skip_inserts=skip_inserts,
                                         upsert_matching_field=upsert_matching_field)
             tmp_table.delete()
-            results.append({'chunk_id': (idx+1), 
-                            'chunk_size': len(chunk),
-                            'mode' : mode, 
-                            'result': result})
+            r_dict = {'chunk_id': (idx+1), 'chunk_size': len(chunk),
+                      'mode' : mode, 'result': result}
+            results.append(r_dict)
         return (results, True)
     except Exception as e:
         return (str(e), False) 
@@ -414,16 +411,15 @@ def create_table(gis, name, df, key_field_name, item_properties={}):
     try:
 
         # Check if the dataframe is empty
-        total_rows = len(df)
-        if total_rows == 0:
-            raise ValueError("The dataframe is empty.")
-        # attempt to convert datetime stamps to UTC TZ for AGOL
-        try:
-            df, pStatus = convert_dts_utc(df)
-            if not pStatus: 
-                print('Failed to convert datetime stamps')
-        except:
-            pass
+        if isinstance(df, pd.DataFrame):
+            total_rows = len(df)
+            if total_rows == 0:
+                raise ValueError("The dataframe is empty.")
+        else:
+            total_rows = df.count()
+            df = df.toPandas()
+            if total_rows == 0:
+                raise ValueError("The dataframe is empty.")
         
         tmp_csv = None
         tmp_table = None
@@ -565,7 +561,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                             upsert_column=key_field_name,
                                                             item_properties=item_properties
                                                            ) 
-                cr['Messages'] = results[0]
+                cr['Messages'] = results
                 cr['mode'] = mode
             cr['Success'] = pStatus
             cr['item_id'] = table_id
