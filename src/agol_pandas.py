@@ -112,7 +112,15 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
     Returns
     -------
     generator : A generator that yields chunks of pandas DataFrames.
-    """    
+    """
+    print(f ‘Generating chunks from dataframe')
+
+    # Check if the dataframe is empty
+    if isinstance(df, pd.DataFrame):
+        total_rows = len(df)
+        if total_rows == 0:
+            raise ValueError("The dataframe is empty.")
+ 
     try:
         # if a key was supplied, sort the dataframe
         if bool(keys):
@@ -122,15 +130,23 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
         # sort and yield chunked pandas dataframes from pyspark
         if not isinstance(df, pd.DataFrame):
             df = df.orderBy(keys)
+            total_rows = df.count()
+            if total_rows == 0:
+                raise ValueError("The dataframe is empty.")
             for i in range(0, df.count(), chunk_size):
                 chunk = df.toPandas()[i:i + chunk_size]
                 yield chunk
         else:
             # sort and yield chunked pandas dataframes 
             df = df.sort_values(by=keys)
+            total_rows = len(df)
+            if total_rows == 0:
+                raise ValueError("The dataframe is empty.")
             for i in range(0, len(df), chunksize):
                 chunk = df[i:i + chunksize]
                 yield chunk
+        chunk_cnt = int(total_rows/chunk_size) + sum(1 for r in [total_rows % chunk_size] if r>0)
+        print(f'Generated {chunk_cnt:,} chunks of {chunk_size:,} (or less) rows from {total_rows:,} total records')
     except Exception as e:
         return str(e)   
 #---------------------------------------------------------------------------------- 
@@ -373,7 +389,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
                                         skip_inserts=skip_inserts,
                                         upsert_matching_field=upsert_matching_field)
             rec_loaded += len(chunk)
-            print(f'Loaded {rec_loaded} of {total_rows} rows', end='\r')
+            print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r')
             tmp_table.delete()
             r_dict = {'chunk_id': (idx+1), 'chunk_size': len(chunk),
                       'mode' : mode, 'result': result}
@@ -557,7 +573,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                     table_id = pub_table.id
                     print(f'Item created with name:({tbl_name}) and Item ID: ({table_id})')
                     rec_loaded += len(chunk)
-                    print(f'Loaded {rec_loaded} of {total_rows} rows', end='\r')
+                    print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r')
             else: 
                 results, pStatus = df_to_agol_hosted_table( gis=gis, 
                                                             df=chunk, 
@@ -568,7 +584,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                             item_properties=item_properties
                                                            ) 
                 rec_loaded += len(chunk)
-                print(f'Loaded {rec_loaded} of {total_rows} rows', end='\r')
+                print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r')
                 cr['Messages'] = results
                 cr['mode'] = mode
             cr['Success'] = pStatus
