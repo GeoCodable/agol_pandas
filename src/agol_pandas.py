@@ -146,7 +146,7 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
                 chunk = df[i:i + chunksize]
                 yield chunk
         chunk_cnt = int(total_rows/chunk_size) + sum(1 for r in [total_rows % chunk_size] if r>0)
-        print(f'Generated {chunk_cnt:,} chunks of {chunk_size:,} (or less) rows from {total_rows:,} total records')
+        print(f'Generated {chunk_cnt:,} chunks of {chunk_size:,} (or less) rows from {total_rows:,} total rows')
     except Exception as e:
         return str(e)   
 #---------------------------------------------------------------------------------- 
@@ -590,7 +590,8 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
             cr['Success'] = pStatus
             cr['item_id'] = table_id
             chnk_results.append(cr)
-        return (chnk_results, True)             
+        return (chnk_results, True)
+        print(f'Loaded {rec_loaded:,} of {total_rows:,} rows')
     except Exception as e:
         return (str(e), False) 
         return(e)
