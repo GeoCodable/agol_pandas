@@ -39,20 +39,21 @@ def convert_dts_utc(df: pd.DataFrame):
         cols = [c for c in df.columns if pd.api.types.is_datetime64_any_dtype(df[c])]
 
         for col in cols:
-
-            if df[col].dtype == 'datetime64[ns]':
-
-                df[col] = pd.to_datetime(df[col]).dt.tz_localize('UTC')
-
+            try:
+                if df[col].dtype == 'datetime64[ns]':
+                    df[col] = pd.to_datetime(df[col]).dt.tz_localize('UTC')
+            except:
+                pass
             else:
-
-                df[col] = pd.to_datetime(df[col])
-
-                df[col] = df[col].dt.tz_convert('UTC')
-
+                try:
+                    df[col] = pd.to_datetime(df[col])
+                    df[col] = df[col].dt.tz_convert('UTC')
+                except:
+                    pass
         return(df, True)    
     except Exception as e:
-        return (str(e), False)
+        print(e)
+        return (df, False)
 #--------------------------------------------------------------------------------
 def normalize_service_name(service_name: str):
     """
@@ -89,7 +90,8 @@ def normalize_service_name(service_name: str):
             service_name = service_name[:128]
         return (service_name, True)
     except Exception as e:
-        return (str(e), False)        
+        print(e)
+        return (service_name, False)        
 #--------------------------------------------------------------------------------
 def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
     """
@@ -513,15 +515,6 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
             if len(items) > 0 :
                 table_id = items[0].id
                 pub_table = items[0]
-    
-    
-        # attempt to convert datetime stamps to UTC TZ for AGOL
-        try:
-            df, pStatus = convert_dts_utc(df)
-            if not pStatus: 
-                print('Failed to convert datetime stamps')
-        except:
-            pass
     
         # Split the dataframe into chunks
         if total_rows > chunk_size:
