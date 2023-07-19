@@ -1,7 +1,32 @@
 import os, uuid, re
 import pandas as pd
 import tempfile
+import tqdm
 from arcgis.gis import GIS
+
+def progress_bar(current, total, desc=''):
+    """
+    A simple progress bar.
+
+    Parameters
+    ----------
+    current : int
+        The current number.
+    total : int
+        The total number.
+    desc : str, optional
+        A description for the progress bar.
+
+    Returns
+    -------
+    prog_bar : progress.Bar
+        The progress bar object.
+
+    """
+    prog_bar = progress.Bar(desc, max=total)
+    for i in range(current, total):
+        prog_bar.update()
+    return prog_bar
 
 
 def get_temp_file(suffix: str = ".csv"):
@@ -113,7 +138,6 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
     -------
     generator : A generator that yields chunks of pandas DataFrames.
     """
-    print(f'Generating chunks from dataframe')
 
     # Check if the dataframe is empty
     if isinstance(df, pd.DataFrame):
@@ -126,7 +150,10 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
         if bool(keys):
             if not isinstance(keys, list):
                 keys = [keys]
-                
+
+        chunk_cnt = int(total_rows/chunk_size) + sum(1 for r in [total_rows % chunk_size] if r>0)
+        print(f'-Generating {chunk_cnt:,} chunks of {chunk_size:,} (or less) rows from {total_rows:,} total rows')
+        
         # sort and yield chunked pandas dataframes from pyspark
         if not isinstance(df, pd.DataFrame):
             df = df.orderBy(keys)
@@ -145,8 +172,6 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
             for i in range(0, len(df), chunksize):
                 chunk = df[i:i + chunksize]
                 yield chunk
-        chunk_cnt = int(total_rows/chunk_size) + sum(1 for r in [total_rows % chunk_size] if r>0)
-        print(f'Generated {chunk_cnt:,} chunks of {chunk_size:,} (or less) rows from {total_rows:,} total rows')
     except Exception as e:
         return str(e)   
 #---------------------------------------------------------------------------------- 
