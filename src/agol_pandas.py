@@ -1,7 +1,6 @@
 import os, uuid, re
 import pandas as pd
 import tempfile
-import tqdm
 from arcgis.gis import GIS
 
 def progress_bar(current, total, desc=''):
