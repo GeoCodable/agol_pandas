@@ -373,7 +373,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
                                         skip_inserts=skip_inserts,
                                         upsert_matching_field=upsert_matching_field)
             rec_loaded += len(chunk)
-            print(f'Loaded {chunk_size * (idx+1)} of {total_rows} rows', end='\r')
+            print(f'Loaded {rec_loaded} of {total_rows} rows', end='\r')
             tmp_table.delete()
             r_dict = {'chunk_id': (idx+1), 'chunk_size': len(chunk),
                       'mode' : mode, 'result': result}
@@ -557,7 +557,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                     table_id = pub_table.id
                     print(f'Item created with name:({tbl_name}) and Item ID: ({table_id})')
                     rec_loaded += len(chunk)
-                    print(f'Loaded {chunk_size * (idx+1)} of {total_rows} rows', end='\r')
+                    print(f'Loaded {rec_loaded} of {total_rows} rows', end='\r')
             else: 
                 results, pStatus = df_to_agol_hosted_table( gis=gis, 
                                                             df=chunk, 
@@ -568,7 +568,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                             item_properties=item_properties
                                                            ) 
                 rec_loaded += len(chunk)
-                print(f'Loaded {chunk_size * (idx+1)} of {total_rows} rows', end='\r')
+                print(f'Loaded {rec_loaded} of {total_rows} rows', end='\r')
                 cr['Messages'] = results
                 cr['mode'] = mode
             cr['Success'] = pStatus
