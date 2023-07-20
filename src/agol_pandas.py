@@ -598,18 +598,24 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                     print(f'Item created with name:({tbl_name}) and Item ID: ({table_id})')
                     rec_loaded += len(chunk)
                     print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r')
+
+                    cr['Messages'] = [f'Item created with name:({tbl_name}) and Item ID: ({table_id})',
+                                      f'Loaded {rec_loaded:,} of {total_rows:,} rows']
             else: 
-                results, pStatus = df_to_agol_hosted_table( gis=gis, 
-                                                            df=chunk, 
-                                                            item_id=table_id, 
-                                                            mode=mode,
-                                                            chunk_size=chunk_size,
-                                                            upsert_column=key_field_name,
-                                                            item_properties=item_properties
-                                                           ) 
+                append_r, pStatus = df_to_agol_hosted_table(    gis=gis, 
+                                                                df=chunk, 
+                                                                item_id=table_id, 
+                                                                mode=mode,
+                                                                chunk_size=chunk_size,
+                                                                upsert_column=key_field_name,
+                                                                item_properties=item_properties
+                                                            ) 
                 rec_loaded += len(chunk)
-                print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r')
-                cr['Messages'] = results
+                print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r
+                if pStatus: 
+                    cr['Messages'] = f'Loaded {rec_loaded:,} of {total_rows:,} rows'
+            else: 
+                cr['Messages'] = append_r
                 cr['mode'] = mode
             cr['Success'] = pStatus
             cr['item_id'] = table_id
