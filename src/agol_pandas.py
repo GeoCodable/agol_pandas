@@ -36,12 +36,12 @@ class LoggingObject:
         return self.reattempt
     def set_reattempt(self, reattempt):
         self.reattempt = reattempt
-    def record_failure(self, increase_backoff=True):
+    def record_failure(self, increase=0.25):
         self.failures += 1
-        if increase_backoff: 
-            self.min_backoff += 0.25
-            self.max_backoff += 0.25
-            self.set_backoff(increase=0.25, 
+        if increase: 
+            self.min_backoff += increase
+            self.max_backoff += increase
+            self.set_backoff(increase=increase, 
                              min_backoff=self.min_backoff, 
                              max_backoff=self.max_backoff)
         return self.failures
