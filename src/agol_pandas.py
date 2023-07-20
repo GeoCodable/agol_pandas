@@ -3,6 +3,27 @@ import pandas as pd
 import tempfile
 from arcgis.gis import GIS
 
+class LoggingObject:
+    def __init__(self):
+        self.logging_info = []
+        self.backoff = 0
+        self.reattempt = 0
+    def add_logging_info(self, message):
+        self.logging_info.append(message)
+    def get_logging_info(self):
+        return self.logging_info
+    def get_backoff(self):
+        self.backoff += self.backoff
+        return self.backoff
+    def set_backoff(self, backoff):
+        self.backoff = backoff
+    def get_reattempt(self):
+        return self.reattempt
+    def set_reattempt(self, reattempt):
+        self.reattempt = reattempt
+
+AP_LOG= LoggingObject()
+
 def progress_bar(current, total, desc=''):
     """
     A simple progress bar.
@@ -579,8 +600,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                   'start_id': sorted_uids.iloc[0],
                   'end_id': sorted_uids.iloc[-1],                  
                   'Success' : False}        
-
-                    
+            
             if idx == 0 and not bool(table_id):
                 cr['mode'] ='create'
                 pub_table, pStatus = create_table(gis=gis, 
@@ -590,6 +610,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                   item_properties=item_properties )
                 if not pStatus:
                     raise ValueError("Table could not be created")
+                    AP_LOG.set_backoff()
                     
                 else:
                     table_id = pub_table.id
@@ -614,10 +635,13 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                     cr['Messages'] = f'Loaded {rec_loaded:,} of {total_rows:,} rows'
                 else: 
                     cr['Messages'] = append_r
+                    AP_LOG.set_backoff()
                 cr['mode'] = mode
             cr['Success'] = pStatus
             cr['item_id'] = table_id
             chnk_results.append(cr)
+            AP_LOG.add_logging_info(cr)
+            AP_LOG.set_backoff()  # testing
         return (chnk_results, True)
         print(f'Loaded {rec_loaded:,} of {total_rows:,} rows')
     except Exception as e:
