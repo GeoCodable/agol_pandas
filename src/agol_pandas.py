@@ -8,7 +8,7 @@ class LoggingObject:
     def __init__(self):
         self.logging_info = []
         self.backoff = 0
-        self.reattempt = 0
+        self.reattempt = 5
         self.min_backoff = 0
         self.max_backoff = 60
         self.randomize_backoff = True
