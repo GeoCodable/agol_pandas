@@ -42,8 +42,8 @@ class LoggingObject:
             self.min_backoff += 0.25
             self.max_backoff += 0.25
             self.set_backoff(increase=0.25, 
-                             self.min_backoff, 
-                             self.max_backoff)
+                             min_backoff=self.min_backoff, 
+                             max_backoff=self.max_backoff)
         return self.failures
 
         
