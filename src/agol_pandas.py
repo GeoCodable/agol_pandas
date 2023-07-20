@@ -614,8 +614,8 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                 print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r')
                 if pStatus: 
                     cr['Messages'] = f'Loaded {rec_loaded:,} of {total_rows:,} rows'
-            else: 
-                cr['Messages'] = append_r
+                else: 
+                    cr['Messages'] = append_r
                 cr['mode'] = mode
             cr['Success'] = pStatus
             cr['item_id'] = table_id
