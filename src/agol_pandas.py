@@ -611,7 +611,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                                 item_properties=item_properties
                                                             ) 
                 rec_loaded += len(chunk)
-                print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r
+                print(f'Loaded {rec_loaded:,} of {total_rows:,} rows', end='\r')
                 if pStatus: 
                     cr['Messages'] = f'Loaded {rec_loaded:,} of {total_rows:,} rows'
             else: 
