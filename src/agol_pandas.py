@@ -149,10 +149,7 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
         if bool(keys):
             if not isinstance(keys, list):
                 keys = [keys]
-
-        # chunk_cnt = int(total_rows/chunk_size) + sum(1 for r in [total_rows % chunk_size] if r>0)
-        # print(f'-Generating {chunk_cnt:,} chunks of {chunk_size:,} (or less) rows from {total_rows:,} total rows')
-        
+       
         # sort and yield chunked pandas dataframes from pyspark
         if not isinstance(df, pd.DataFrame):
             df = df.orderBy(keys)
