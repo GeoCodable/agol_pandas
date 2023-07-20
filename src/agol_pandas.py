@@ -2,26 +2,51 @@ import os, uuid, re
 import pandas as pd
 import tempfile
 from arcgis.gis import GIS
+import random
 
 class LoggingObject:
     def __init__(self):
         self.logging_info = []
         self.backoff = 0
         self.reattempt = 0
+        self.min_backoff = 0
+        self.max_backoff = 60
+        self.randomize_backoff = True
+        self.failures = 0
     def add_logging_info(self, message):
         self.logging_info.append(message)
     def get_logging_info(self):
         return self.logging_info
     def get_backoff(self):
-        self.backoff += self.backoff
         return self.backoff
-    def set_backoff(self, backoff):
-        self.backoff = backoff
+    def set_backoff(self, increase=0.25, backoff=None, min_backoff=0, max_backoff=15, randomize=True):
+        self.min_backoff = min_backoff
+        self.max_backoff = max_backoff
+        self.randomize_backoff = randomize
+        if backoff:
+            self.backoff = backoff
+            return(self.backoff)
+        elif increase and not randomize:
+            self.min_backoff += increase
+            self.backoff = self.min_backoff
+        elif increase and randomize:
+            self.backoff = random.uniform(min_backoff, max_backoff)
+        return self.backoff
     def get_reattempt(self):
         return self.reattempt
     def set_reattempt(self, reattempt):
         self.reattempt = reattempt
+    def record_failure(self, increase_backoff=True):
+        self.failures += 1
+        if increase_backoff: 
+            self.min_backoff += 0.25
+            self.max_backoff += 0.25
+            self.set_backoff(increase=0.25, 
+                             self.min_backoff, 
+                             self.max_backoff)
+        return self.failures
 
+        
 AP_LOG= LoggingObject()
 
 def progress_bar(current, total, desc=''):
@@ -610,8 +635,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                   item_properties=item_properties )
                 if not pStatus:
                     raise ValueError("Table could not be created")
-                    AP_LOG.set_backoff()
-                    
+                    AP_LOG.record_failure()
                 else:
                     table_id = pub_table.id
                     print(f'Item created with name:({tbl_name}) and Item ID: ({table_id})')
@@ -635,13 +659,13 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                     cr['Messages'] = f'Loaded {rec_loaded:,} of {total_rows:,} rows'
                 else: 
                     cr['Messages'] = append_r
-                    AP_LOG.set_backoff()
+                    AP_LOG.record_failure()
                 cr['mode'] = mode
             cr['Success'] = pStatus
             cr['item_id'] = table_id
             chnk_results.append(cr)
             AP_LOG.add_logging_info(cr)
-            AP_LOG.set_backoff()  # testing
+            AP_LOG.record_failure()  # testing
         return (chnk_results, True)
         print(f'Loaded {rec_loaded:,} of {total_rows:,} rows')
     except Exception as e:
