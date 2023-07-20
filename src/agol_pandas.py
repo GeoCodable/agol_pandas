@@ -592,7 +592,9 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                   key_field_name=key_field_name,
                                                   item_properties=item_properties )
                 if not pStatus:
-                    raise ValueError("Table could not be created")
+                    # raise ValueError("Table could not be created")
+                    return ("Table could not be created", False) 
+                    
                 else:
                     table_id = pub_table.id
                     print(f'Item created with name:({tbl_name}) and Item ID: ({table_id})')
@@ -624,5 +626,4 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
         print(f'Loaded {rec_loaded:,} of {total_rows:,} rows')
     except Exception as e:
         return (str(e), False) 
-        return(e)
 #-------------------------------------------------------------------------------            
