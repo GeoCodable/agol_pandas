@@ -11,7 +11,7 @@ class LoggingObject:
         self.backoff = 0
         self.reattempt = 5
         self.min_backoff = 0
-        self.max_backoff = 60
+        self.max_backoff = 15
         self.randomize_backoff = True
         self.failures = 0
     def add_logging_info(self, message):
