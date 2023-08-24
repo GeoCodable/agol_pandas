@@ -11,7 +11,7 @@ class LoggingObject:
         self.backoff = 0
         self.reattempt = 5
         self.min_backoff = 0
-        self.max_backoff = 15
+        self.max_backoff = 5
         self.randomize_backoff = True
         self.failures = 0
     def add_logging_info(self, message):
@@ -20,18 +20,20 @@ class LoggingObject:
         return self.logging_info
     def get_backoff(self):
         return self.backoff
-    def set_backoff(self, increase=0.25, backoff=None, min_backoff=0, max_backoff=15, randomize=True):
+    def set_backoff(self, increase=0.10, backoff=None, min_backoff=0, max_backoff=5, randomize=True):
         self.min_backoff = min_backoff
         self.max_backoff = max_backoff
         self.randomize_backoff = randomize
         if backoff:
             self.backoff = backoff
             return(self.backoff)
-        elif increase and not randomize:
-            self.min_backoff += increase
+        elif self.failures > 0 and increase and not randomize:
+            self.min_backoff = (self.failures * increase)
             self.backoff = self.min_backoff
-        elif increase and randomize:
+        elif self.failures > 0 and increase and randomize:
             self.backoff = random.uniform(min_backoff, max_backoff)
+        else:
+            self.backoff = 0
         return self.backoff
     def get_reattempt(self):
         return self.reattempt
