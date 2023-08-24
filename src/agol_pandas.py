@@ -3,6 +3,7 @@ import pandas as pd
 import tempfile
 from arcgis.gis import GIS
 import random
+import time
 
 class LoggingObject:
     def __init__(self):
@@ -614,7 +615,11 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
         rec_loaded = 0
         # create a new table or update an existing using the first chunk, append for subsequent chunks 
         for idx, chunk in enumerate(chunks):
-        
+            # use the backoff time to ensure the API is not overloaded
+            back_off = AP_LOG.get_backoff()
+            print(back_off)
+            time.sleep(back_off)
+            
             # Sort the IDs in ascending order
             sorted_uids = chunk[key_field_name].sort_values()
         
