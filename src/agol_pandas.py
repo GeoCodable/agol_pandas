@@ -8,52 +8,42 @@ import time
 class LoggingObject:
     def __init__(self):
         self.logging_info = []
-        self.backoff = 0
         self.max_reattempts = 5
+        self.backoff = 0
         self.min_backoff = 0
         self.max_backoff = 30
+        self.backoff_interval = 0.1
         self.randomize_backoff = True
         self.failures = 0
+        self.fail_log = []
         
     def add_logging_info(self, message):
         self.logging_info.append(message)
-    def get_logging_info(self):
-        return self.logging_info
         
-    def get_backoff(self):
-        return self.backoff
-    def set_backoff(self, increase=0.10, backoff=None, randomize=True):
-
-        self.randomize_backoff = randomize
-        if backoff:
-            self.backoff = backoff
-            return(self.backoff)
-        else:
-            back_off_rng = [(self.min_backoff += increase), self.max_backoff - increase]
+    def set_backoff(self):
+        if not max_backoff > 0:
+            self.backoff = 0
+        else: 
+            back_off_rng = [(self.min_backoff + self.backoff_interval), 
+                             self.max_backoff - self.backoff_interval]
             self.min_backoff = min(back_off_rng)
-        if self.failures > 0 and increase and not randomize:
+        if self.failures > 0 and self.backoff_interval and not self.randomize_backoff:
             self.backoff = self.min_backoff
-        elif self.failures > 0 and increase and randomize:
+        elif self.failures > 0 and self.backoff_interval and self.randomize_backoff:
             self.backoff = random.uniform(self.min_backoff, self.max_backoff)
         else:
             self.backoff = 0
         
-        
-    def get_max_reattempt(self):
-        return self.max_reattempts
-    def set_max_reattempt(self, max_reattempts):
-        self.max_reattempts = max_reattempts
-        
-    def record_failure(self, increase=0.10):
+    def record_failure(self, log_data):
         self.failures += 1
-        if increase: 
-            self.min_backoff += increase
-            self.max_backoff += increase
+        if self.backoff_interval: 
             self.set_backoff(increase=increase, 
                              min_backoff=self.min_backoff, 
                              max_backoff=self.max_backoff)
+            self.fail_log.append(log_data)
         
-
+    def set_max_reattempt(self, max_reattempts):
+        self.max_reattempts = max_reattempts
         
 AP_LOG = LoggingObject()
 
@@ -623,8 +613,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
         # create a new table or update an existing using the first chunk, append for subsequent chunks 
         for idx, chunk in enumerate(chunks):
             # use the backoff time to ensure the API is not overloaded
-            back_off = AP_LOG.get_backoff()
-            print(back_off)
+            back_off = AP_LOG.backoff
             time.sleep(back_off)
             
             # Sort the IDs in ascending order
