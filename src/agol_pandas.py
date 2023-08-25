@@ -11,35 +11,40 @@ class LoggingObject:
         self.backoff = 0
         self.reattempt = 5
         self.min_backoff = 0
-        self.max_backoff = 5
+        self.max_backoff = 30
         self.randomize_backoff = True
         self.failures = 0
+        
     def add_logging_info(self, message):
         self.logging_info.append(message)
     def get_logging_info(self):
         return self.logging_info
+        
     def get_backoff(self):
         return self.backoff
-    def set_backoff(self, increase=0.10, backoff=None, min_backoff=0, max_backoff=5, randomize=True):
-        self.min_backoff = min_backoff
-        self.max_backoff = max_backoff
+    def set_backoff(self, increase=0.10, backoff=None, randomize=True):
+
         self.randomize_backoff = randomize
         if backoff:
             self.backoff = backoff
             return(self.backoff)
-        elif self.failures > 0 and increase and not randomize:
-            self.min_backoff = (self.failures * increase)
+        else:
+            back_off_rng = [(self.min_backoff += increase), self.max_backoff - increase]
+            self.min_backoff = min(back_off_rng)
+        if self.failures > 0 and increase and not randomize:
             self.backoff = self.min_backoff
         elif self.failures > 0 and increase and randomize:
-            self.backoff = random.uniform(min_backoff, max_backoff)
+            self.backoff = random.uniform(self.min_backoff, self.max_backoff)
         else:
             self.backoff = 0
-        return self.backoff
+        
+        
     def get_reattempt(self):
         return self.reattempt
     def set_reattempt(self, reattempt):
         self.reattempt = reattempt
-    def record_failure(self, increase=0.25):
+        
+    def record_failure(self, increase=0.10):
         self.failures += 1
         if increase: 
             self.min_backoff += increase
@@ -47,10 +52,10 @@ class LoggingObject:
             self.set_backoff(increase=increase, 
                              min_backoff=self.min_backoff, 
                              max_backoff=self.max_backoff)
-        return self.failures
+        
 
         
-AP_LOG= LoggingObject()
+AP_LOG = LoggingObject()
 
 def progress_bar(current, total, desc=''):
     """
@@ -642,7 +647,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                                                   item_properties=item_properties )
                 if not pStatus:
                     raise ValueError("Table could not be created")
-                    AP_LOG.record_failure()
+                    AP_LOG.record_failure(cr)
                 else:
                     table_id = pub_table.id
                     print(f'Item created with name:({tbl_name}) and Item ID: ({table_id})')
@@ -666,13 +671,13 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                     cr['Messages'] = f'Loaded {rec_loaded:,} of {total_rows:,} rows'
                 else: 
                     cr['Messages'] = append_r
-                    AP_LOG.record_failure()
+                    AP_LOG.record_failure(cr)
                 cr['mode'] = mode
             cr['Success'] = pStatus
             cr['item_id'] = table_id
             chnk_results.append(cr)
             AP_LOG.add_logging_info(cr)
-            AP_LOG.record_failure()  # testing
+            AP_LOG.record_failure(cr)  # testing
         return (chnk_results, True)
         print(f'Loaded {rec_loaded:,} of {total_rows:,} rows')
     except Exception as e:
