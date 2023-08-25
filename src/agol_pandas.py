@@ -16,12 +16,9 @@ class LoggingObject:
         self.randomize_backoff = True
         self.failures = 0
         self.fail_log = []
-        
-    def add_logging_info(self, message):
-        self.logging_info.append(message)
-        
+               
     def set_backoff(self):
-        if not max_backoff > 0:
+        if not self.max_backoff > 0:
             self.backoff = 0
         elif self.failures > 0 and self.backoff_interval > 0:
             back_off_rng = [(self.min_backoff + self.backoff_interval), 
@@ -33,16 +30,16 @@ class LoggingObject:
             else:
                 self.backoff = random.uniform(self.min_backoff, 
                                               self.max_backoff)
+
+    def record_logging(self, message):
+        self.logging_info.append(message)
         
     def record_failure(self, message):
         self.failures += 1
         if self.backoff_interval: 
             self.set_backoff()
         self.fail_log.append(message)
-        
-    def set_max_reattempt(self, max_reattempts):
-        self.max_reattempts = max_reattempts
-        
+
 AP_LOG = LoggingObject()
 
 def progress_bar(current, total, desc=''):
@@ -670,7 +667,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
             cr['Success'] = pStatus
             cr['item_id'] = table_id
             chnk_results.append(cr)
-            AP_LOG.add_logging_info(cr)
+            AP_LOG.record_logging(cr)
             AP_LOG.record_failure(cr)  # testing
         return (chnk_results, True)
         print(f'Loaded {rec_loaded:,} of {total_rows:,} rows')
