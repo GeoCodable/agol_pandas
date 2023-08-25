@@ -668,7 +668,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
             cr['item_id'] = table_id
             chnk_results.append(cr)
             AP_LOG.record_logging(cr)
-            AP_LOG.record_failure(cr)  # testing
+            # AP_LOG.record_failure(cr)  # testing
         return (chnk_results, True)
         print(f'Loaded {rec_loaded:,} of {total_rows:,} rows')
     except Exception as e:
