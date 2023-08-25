@@ -23,16 +23,16 @@ class LoggingObject:
     def set_backoff(self):
         if not max_backoff > 0:
             self.backoff = 0
-        else: 
+        elif self.failures > 0 and self.backoff_interval > 0:
             back_off_rng = [(self.min_backoff + self.backoff_interval), 
                              self.max_backoff - self.backoff_interval]
             self.min_backoff = min(back_off_rng)
-        if self.failures > 0 and self.backoff_interval and not self.randomize_backoff:
-            self.backoff = self.min_backoff
-        elif self.failures > 0 and self.backoff_interval and self.randomize_backoff:
-            self.backoff = random.uniform(self.min_backoff, self.max_backoff)
-        else:
-            self.backoff = 0
+        
+            if not self.randomize_backoff:
+                self.backoff = self.min_backoff
+            else:
+                self.backoff = random.uniform(self.min_backoff, 
+                                              self.max_backoff)
         
     def record_failure(self, message):
         self.failures += 1
