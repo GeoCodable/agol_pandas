@@ -9,7 +9,7 @@ class LoggingObject:
     def __init__(self):
         self.logging_info = []
         self.backoff = 0
-        self.reattempt = 5
+        self.max_reattempts = 5
         self.min_backoff = 0
         self.max_backoff = 30
         self.randomize_backoff = True
@@ -39,10 +39,10 @@ class LoggingObject:
             self.backoff = 0
         
         
-    def get_reattempt(self):
-        return self.reattempt
-    def set_reattempt(self, reattempt):
-        self.reattempt = reattempt
+    def get_max_reattempt(self):
+        return self.max_reattempts
+    def set_max_reattempt(self, max_reattempts):
+        self.max_reattempts = max_reattempts
         
     def record_failure(self, increase=0.10):
         self.failures += 1
@@ -636,8 +636,16 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
                   'row_end': chunk.index[-1] + 1,
                   'start_id': sorted_uids.iloc[0],
                   'end_id': sorted_uids.iloc[-1],                  
-                  'Success' : False}        
-            
+                  'Success' : False,
+                  'backoff': AP_LOG.backoff,
+                  'max_reattempts': AP_LOG.max_reattempts,
+                  'min_backoff': AP_LOG.min_backoff,
+                  'max_backoff': AP_LOG.max_backoff,
+                  'randomize_backoff': AP_LOG.randomize_backoff,
+                  'failures': AP_LOG.failures
+                  }        
+
+        
             if idx == 0 and not bool(table_id):
                 cr['mode'] ='create'
                 pub_table, pStatus = create_table(gis=gis, 
