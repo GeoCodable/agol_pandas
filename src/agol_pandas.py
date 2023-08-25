@@ -37,9 +37,7 @@ class LoggingObject:
     def record_failure(self, message):
         self.failures += 1
         if self.backoff_interval: 
-            self.set_backoff(increase=increase, 
-                             min_backoff=self.min_backoff, 
-                             max_backoff=self.max_backoff)
+            self.set_backoff()
         self.fail_log.append(message)
         
     def set_max_reattempt(self, max_reattempts):
