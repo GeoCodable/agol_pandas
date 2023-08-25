@@ -34,13 +34,13 @@ class LoggingObject:
         else:
             self.backoff = 0
         
-    def record_failure(self, log_data):
+    def record_failure(self, message):
         self.failures += 1
         if self.backoff_interval: 
             self.set_backoff(increase=increase, 
                              min_backoff=self.min_backoff, 
                              max_backoff=self.max_backoff)
-            self.fail_log.append(log_data)
+        self.fail_log.append(message)
         
     def set_max_reattempt(self, max_reattempts):
         self.max_reattempts = max_reattempts
@@ -476,7 +476,7 @@ def df_to_agol_hosted_table(gis, df, item_id, mode='append',
 #-------------------------------------------------------------------------------
 def create_table(gis, name, df, key_field_name, item_properties={}):
     """Internal function to upload a new
-    csv and create a new hoasted table
+    csv and create a new hosted table
     Parameters
     ----------   
     gis : arcgis.gis.GIS
@@ -519,7 +519,7 @@ def create_table(gis, name, df, key_field_name, item_properties={}):
         tmp_table = gis.content.add(data=tmp_csv, 
                                     item_properties=item_properties,
                                     owner=gis.users.me.username)
-        # publish the csv as a hoasted table
+        # publish the csv as a hosted table
         pub_table = tmp_table.publish(None)
         # remove the temp csv file
         os.remove(tmp_csv)
@@ -613,8 +613,7 @@ def create_hosted_table_from_dataframe(gis: GIS,  df: pd.DataFrame, name: str = 
         # create a new table or update an existing using the first chunk, append for subsequent chunks 
         for idx, chunk in enumerate(chunks):
             # use the backoff time to ensure the API is not overloaded
-            back_off = AP_LOG.backoff
-            time.sleep(back_off)
+            time.sleep(AP_LOG.backoff)
             
             # Sort the IDs in ascending order
             sorted_uids = chunk[key_field_name].sort_values()
