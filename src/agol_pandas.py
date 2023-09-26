@@ -195,9 +195,14 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
             total_rows = df.count()
             if total_rows == 0:
                 raise ValueError("The dataframe is empty.")
-            for i in range(0, df.count(), chunk_size):
-                chunk = df.toPandas()[i:i + chunk_size]
-                yield chunk
+            try:
+                for i in range(0, total_rows, chunk_size):
+                    chunk = df.to_pandas_sdf()[i:i + chunk_size]
+                    yield chunk
+            except:
+                for i in range(0, total_rows, chunk_size):
+                    chunk = df.toPandas()[i:i + chunk_size]
+                    yield chunk
         else:
             # sort and yield chunked pandas dataframes 
             df = df.sort_values(by=keys)
