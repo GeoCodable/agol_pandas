@@ -197,7 +197,7 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
                 raise ValueError("The dataframe is empty.")
             try:
                 for i in range(0, total_rows, chunk_size):
-                    chunk = df.to_pandas_sdf()[i:i + chunk_size]
+                    chunk = df.st.to_pandas_sdf()[i:i + chunk_size]
                     yield chunk
             except:
                 for i in range(0, total_rows, chunk_size):
