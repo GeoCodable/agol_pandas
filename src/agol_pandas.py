@@ -195,11 +195,11 @@ def df_to_pandas_chunks(df, chunk_size=100000, keys=[]):
             total_rows = df.count()
             if total_rows == 0:
                 raise ValueError("The dataframe is empty.")
-            try:
+            if hasattr(df, 'st'):
                 for i in range(0, total_rows, chunk_size):
                     chunk = df.st.to_pandas_sdf()[i:i + chunk_size]
                     yield chunk
-            except:
+            else:
                 for i in range(0, total_rows, chunk_size):
                     chunk = df.toPandas()[i:i + chunk_size]
                     yield chunk
